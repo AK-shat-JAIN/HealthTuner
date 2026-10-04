@@ -13,3 +13,55 @@
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 }
+
+/* Summary Markdown Formatted Output Styling */
+.summary-content h1, .summary-content h2, .summary-content h3, .summary-content h4 {
+    font-weight: 700;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    color: inherit;
+}
+
+.summary-content h3 {
+    font-size: 1.05rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    padding-bottom: 0.35rem;
+}
+
+.summary-content p {
+    margin-bottom: 0.75rem;
+    line-height: 1.625;
+}
+
+.summary-content ul, .summary-content ol {
+    margin-left: 1.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.summary-content ul {
+    list-style-type: disc;
+}
+
+.summary-content ol {
+    list-style-type: decimal;
+}
+
+.summary-content li {
+    margin-bottom: 0.35rem;
+    line-height: 1.5;
+}
+
+.summary-content strong {
+    font-weight: 600;
+}
+
+/* Mobile responsive enhancements */
+@media (max-width: 640px) {
+    .calendar-grid-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .calendar-min-width {
+        min-width: 580px;
+    }
+}

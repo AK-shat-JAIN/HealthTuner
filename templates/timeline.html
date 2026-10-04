@@ -102,8 +102,8 @@
                     </div>
 
                     <!-- Summary Content Formatted with Markdown Parser -->
-                    <div class="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 summary-content leading-relaxed">
-                        {{ summary.summary_text | replace('\n', '<br>') | safe }}
+                    <div class="summary-content prose prose-slate dark:prose-invert max-w-none text-slate-700 dark:text-slate-200 text-sm leading-relaxed" data-raw="{{ summary.summary_text }}">
+                        {{ summary.summary_text }}
                     </div>
                 </div>
             </div>
@@ -177,8 +177,15 @@
         }
     }
 
-    // Auto-trigger if redirected from dashboard button
+    // Parse all raw markdown containers using marked.js
     window.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.summary-content').forEach(el => {
+            const raw = el.getAttribute('data-raw');
+            if (raw && window.marked) {
+                el.innerHTML = marked.parse(raw);
+            }
+        });
+
         const params = new URLSearchParams(window.location.search);
         if (params.get('auto_summary') === '1') {
             setFullMonth();

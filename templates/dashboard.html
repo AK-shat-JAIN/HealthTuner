@@ -47,21 +47,23 @@
 
     <!-- Calendar Grid -->
     <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 sm:p-6">
-        <!-- Weekday Headers -->
-        <div class="grid grid-cols-7 gap-2 sm:gap-3 text-center mb-3">
-            {% for day_name in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}
-            <div class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider py-1">
-                {{ day_name }}
-            </div>
-            {% endfor %}
-        </div>
+        <div class="calendar-grid-wrapper">
+            <div class="calendar-min-width sm:min-w-0">
+                <!-- Weekday Headers -->
+                <div class="grid grid-cols-7 gap-2 sm:gap-3 text-center mb-3">
+                    {% for day_name in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}
+                    <div class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider py-1">
+                        {{ day_name }}
+                    </div>
+                    {% endfor %}
+                </div>
 
-        <!-- Days Grid -->
-        <div class="grid grid-cols-7 gap-2 sm:gap-3">
-            {% for cell in calendar_cells %}
-                {% if cell.is_padding %}
-                <!-- Empty Padding Cell -->
-                <div class="h-24 sm:h-32 rounded-xl bg-slate-50/50 dark:bg-slate-950/30 border border-dashed border-slate-200/60 dark:border-slate-800/60 opacity-40"></div>
+                <!-- Days Grid -->
+                <div class="grid grid-cols-7 gap-2 sm:gap-3">
+                    {% for cell in calendar_cells %}
+                        {% if cell.is_padding %}
+                        <!-- Empty Padding Cell -->
+                        <div class="h-20 sm:h-32 rounded-xl bg-slate-50/50 dark:bg-slate-950/30 border border-dashed border-slate-200/60 dark:border-slate-800/60 opacity-40"></div>
                 {% elif cell.is_future %}
                 <!-- Future Day (Locked) -->
                 <div class="h-24 sm:h-32 p-2.5 sm:p-3 rounded-xl bg-slate-100/60 dark:bg-slate-950/40 border border-slate-200/80 dark:border-slate-800/80 text-slate-400 dark:text-slate-600 flex flex-col justify-between cursor-not-allowed select-none opacity-60">
@@ -121,6 +123,7 @@
                 </div>
                 {% endif %}
             {% endfor %}
+        </div>
         </div>
     </div>
 </div>
