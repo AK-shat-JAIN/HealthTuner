@@ -1,6 +1,10 @@
 import os
 from typing import List, Dict, Any
-from backboard import BackboardClient
+
+try:
+    from backboard import BackboardClient
+except ImportError:
+    BackboardClient = None
 
 BACKBOARD_API_KEY = os.getenv("BACKBOARD_API_KEY", "")
 
@@ -75,7 +79,7 @@ async def generate_health_summary(logs: List[Dict[str, Any]], start_date: str, e
 
     api_key = os.getenv("BACKBOARD_API_KEY", "").strip()
 
-    if api_key:
+    if api_key and BackboardClient is not None:
         try:
             client = BackboardClient(api_key=api_key)
             assistant_id = await get_or_create_assistant(client)
