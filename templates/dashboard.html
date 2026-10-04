@@ -1,0 +1,377 @@
+{% extends "base.html" %}
+
+{% block title %}Calendar Dashboard - HealthTuner{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header Controls: Month Navigation & AI Quick Action -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div class="flex items-center space-x-4">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-lg shadow-sm">
+                {{ month_name[:3] }}
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{{ month_name }} {{ current_year }}</h1>
+                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Click unlocked past/present days to log your workouts and recovery.</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <a href="/timeline?auto_summary=1" class="inline-flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-sm font-medium rounded-xl shadow-md shadow-emerald-600/20 transition group">
+                <i data-lucide="sparkles" class="w-4 h-4 group-hover:rotate-12 transition-transform"></i>
+                <span>Generate Month AI Summary</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Workload Legend -->
+    <div class="flex flex-wrap items-center gap-3 text-xs font-medium text-slate-600 dark:text-slate-400">
+        <span class="text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider">Legend:</span>
+        <span class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>Easy (1 field)</span>
+        </span>
+        <span class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
+            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+            <span>Medium (3 fields)</span>
+        </span>
+        <span class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
+            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+            <span>Maximum (5 fields)</span>
+        </span>
+        <span class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700">
+            <i data-lucide="lock" class="w-3 h-3"></i>
+            <span>Future Date (Locked)</span>
+        </span>
+    </div>
+
+    <!-- Calendar Grid -->
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4 sm:p-6">
+        <!-- Weekday Headers -->
+        <div class="grid grid-cols-7 gap-2 sm:gap-3 text-center mb-3">
+            {% for day_name in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}
+            <div class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider py-1">
+                {{ day_name }}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Days Grid -->
+        <div class="grid grid-cols-7 gap-2 sm:gap-3">
+            {% for cell in calendar_cells %}
+                {% if cell.is_padding %}
+                <!-- Empty Padding Cell -->
+                <div class="h-24 sm:h-32 rounded-xl bg-slate-50/50 dark:bg-slate-950/30 border border-dashed border-slate-200/60 dark:border-slate-800/60 opacity-40"></div>
+                {% elif cell.is_future %}
+                <!-- Future Day (Locked) -->
+                <div class="h-24 sm:h-32 p-2.5 sm:p-3 rounded-xl bg-slate-100/60 dark:bg-slate-950/40 border border-slate-200/80 dark:border-slate-800/80 text-slate-400 dark:text-slate-600 flex flex-col justify-between cursor-not-allowed select-none opacity-60">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-semibold">{{ cell.day_num }}</span>
+                        <i data-lucide="lock" class="w-3.5 h-3.5 text-slate-400"></i>
+                    </div>
+                    <span class="text-[10px] text-slate-400 italic">Locked</span>
+                </div>
+                {% else %}
+                <!-- Active / Unlocked Day -->
+                <div onclick="openLogModal('{{ cell.date_str }}')"
+                    class="group relative h-24 sm:h-32 p-2.5 sm:p-3 rounded-xl border transition-all duration-200 flex flex-col justify-between cursor-pointer hover:shadow-lg hover:-translate-y-0.5
+                    {% if cell.is_today %}
+                        border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/30 dark:bg-emerald-950/20
+                    {% elif cell.has_log %}
+                        border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/90
+                    {% else %}
+                        border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/50 hover:border-emerald-400 dark:hover:border-emerald-500/60
+                    {% endif %}
+                    ">
+                    <div class="flex justify-between items-start">
+                        <span class="text-sm font-bold {% if cell.is_today %}text-emerald-600 dark:text-emerald-400{% else %}text-slate-800 dark:text-slate-200{% endif %}">
+                            {{ cell.day_num }}
+                        </span>
+                        {% if cell.is_today %}
+                        <span class="text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded bg-emerald-500 text-white tracking-wider">Today</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Log Status Indicator -->
+                    <div class="mt-auto">
+                        {% if cell.has_log %}
+                            {% if cell.log.workload_type == 'easy' %}
+                            <div class="flex items-center space-x-1.5 px-2 py-1 rounded-lg bg-emerald-100/70 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-xs font-semibold">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                <span class="truncate">Easy Log</span>
+                            </div>
+                            {% elif cell.log.workload_type == 'medium' %}
+                            <div class="flex items-center space-x-1.5 px-2 py-1 rounded-lg bg-blue-100/70 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 text-xs font-semibold">
+                                <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                                <span class="truncate">Medium Log</span>
+                            </div>
+                            {% elif cell.log.workload_type == 'maximum' %}
+                            <div class="flex items-center space-x-1.5 px-2 py-1 rounded-lg bg-purple-100/70 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 text-xs font-semibold">
+                                <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                                <span class="truncate">Max Log</span>
+                            </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="text-[11px] text-slate-400 dark:text-slate-500 flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-500"></i>
+                                <span>Add log</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Dynamic Workload Logger -->
+<div id="logModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 animate-fade-in relative max-h-[90vh] overflow-y-auto">
+        <!-- Close Button -->
+        <button onclick="closeLogModal()" class="absolute top-5 right-5 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+
+        <div class="mb-6">
+            <div class="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400 font-semibold text-xs tracking-wider uppercase">
+                <i data-lucide="calendar-check" class="w-4 h-4"></i>
+                <span id="modalDateDisplay">Date</span>
+            </div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white mt-1">Daily Workload & Health Entry</h2>
+        </div>
+
+        <form id="logForm" onsubmit="submitLog(event)" class="space-y-6">
+            <input type="hidden" id="logDate" name="date">
+
+            <!-- Workload Segmented Tabs -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Select Workload Intensity</label>
+                <div class="grid grid-cols-3 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                    <button type="button" onclick="setWorkloadType('easy')" id="tab-easy"
+                        class="py-2 text-xs font-bold rounded-lg transition text-slate-600 dark:text-slate-300">
+                        Easy
+                    </button>
+                    <button type="button" onclick="setWorkloadType('medium')" id="tab-medium"
+                        class="py-2 text-xs font-bold rounded-lg transition text-slate-600 dark:text-slate-300">
+                        Medium
+                    </button>
+                    <button type="button" onclick="setWorkloadType('maximum')" id="tab-maximum"
+                        class="py-2 text-xs font-bold rounded-lg transition text-slate-600 dark:text-slate-300">
+                        Maximum
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dynamic Fields Container -->
+            <div id="dynamicFields" class="space-y-4">
+                <!-- Injected via JavaScript based on workload type -->
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
+                <button type="button" id="deleteBtn" onclick="deleteLog()" class="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 font-semibold flex items-center space-x-1 hidden">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span>Delete Log</span>
+                </button>
+                <div class="flex items-center space-x-3 ml-auto">
+                    <button type="button" onclick="closeLogModal()" class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition">
+                        Cancel
+                    </button>
+                    <button type="submit" id="saveLogBtn" class="px-5 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-600/20 transition flex items-center space-x-1.5">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        <span>Save Record</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Store user logs by date for instant modal population
+    const existingLogs = {{ logs_by_date_json | safe }};
+    let currentWorkload = 'easy';
+    let activeLogDate = '';
+
+    function openLogModal(dateStr) {
+        activeLogDate = dateStr;
+        document.getElementById('logDate').value = dateStr;
+        
+        // Format display date
+        const d = new Date(dateStr + 'T00:00:00');
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('modalDateDisplay').textContent = d.toLocaleDateString(undefined, options);
+
+        const existing = existingLogs[dateStr];
+        if (existing) {
+            currentWorkload = existing.workload_type || 'easy';
+            document.getElementById('deleteBtn').classList.remove('hidden');
+        } else {
+            currentWorkload = 'easy';
+            document.getElementById('deleteBtn').classList.add('hidden');
+        }
+
+        setWorkloadType(currentWorkload, existing ? existing.content_json : {});
+        document.getElementById('logModal').classList.remove('hidden');
+        lucide.createIcons();
+    }
+
+    function closeLogModal() {
+        document.getElementById('logModal').classList.add('hidden');
+    }
+
+    function setWorkloadType(type, initialValues = {}) {
+        currentWorkload = type;
+
+        // Update tabs active state
+        ['easy', 'medium', 'maximum'].forEach(t => {
+            const btn = document.getElementById(`tab-${t}`);
+            if (t === type) {
+                btn.className = "py-2 text-xs font-bold rounded-lg transition bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm border border-slate-200/50 dark:border-slate-600";
+            } else {
+                btn.className = "py-2 text-xs font-semibold rounded-lg transition text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white";
+            }
+        });
+
+        // Preserve already typed values if switching between tabs in same session
+        const container = document.getElementById('dynamicFields');
+        let currentFormVals = {};
+        const inputs = container.querySelectorAll('input, textarea');
+        inputs.forEach(i => {
+            currentFormVals[i.name] = i.value;
+        });
+
+        const mergedVals = Object.assign({}, initialValues, currentFormVals);
+        container.innerHTML = '';
+
+        if (type === 'easy') {
+            // 1 Field
+            container.innerHTML = `
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">Quick Log</label>
+                    <textarea name="quick_log" rows="4" required
+                        class="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none transition"
+                        placeholder="e.g. 45 min brisk walk, 2.5L water, 10,500 steps, felt energized">${mergedVals.quick_log || ''}</textarea>
+                </div>
+            `;
+        } else if (type === 'medium') {
+            // 3 Fields
+            container.innerHTML = `
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">1. Main Activity / Exercise</label>
+                    <input type="text" name="activity" required value="${mergedVals.activity || ''}"
+                        class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+                        placeholder="e.g. Upper Body Hypertrophy 50m, 5k Jog">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">2. Hydration & Nutrition Highlights</label>
+                    <input type="text" name="nutrition" required value="${mergedVals.nutrition || ''}"
+                        class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+                        placeholder="e.g. 3L Water, 140g Protein, High fiber">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">3. Daily Notes / Energy Level</label>
+                    <input type="text" name="energy_notes" required value="${mergedVals.energy_notes || ''}"
+                        class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+                        placeholder="e.g. Energy 8/10, slight shoulder soreness, solid sleep">
+                </div>
+            `;
+        } else if (type === 'maximum') {
+            // 5 Fields
+            container.innerHTML = `
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">1. Intense Training / Workout Breakdown</label>
+                    <input type="text" name="training_breakdown" required value="${mergedVals.training_breakdown || ''}"
+                        class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition"
+                        placeholder="e.g. 75 min Heavy Squats (5x5 @ 120kg), HIIT Cardio">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">2. Hydration & Macros / Diet</label>
+                    <input type="text" name="diet_macros" required value="${mergedVals.diet_macros || ''}"
+                        class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition"
+                        placeholder="e.g. 3.5L Water + Electrolytes, 2600 kcal, 180g P / 280g C / 70g F">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">3. Sleep & Recovery Duration</label>
+                    <input type="text" name="sleep_recovery" required value="${mergedVals.sleep_recovery || ''}"
+                        class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition"
+                        placeholder="e.g. 8 hrs 15 min, 1h 45m Deep Sleep, HRV 72ms">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">4. Stress & Mental Wellness</label>
+                    <input type="text" name="stress_wellness" required value="${mergedVals.stress_wellness || ''}"
+                        class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition"
+                        placeholder="e.g. Low stress, 10 min cold shower & meditation">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">5. Key Accomplishments / Notes</label>
+                    <input type="text" name="accomplishments" required value="${mergedVals.accomplishments || ''}"
+                        class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none transition"
+                        placeholder="e.g. Hit new Deadlift PR, felt great stamina">
+                </div>
+            `;
+        }
+    }
+
+    async function submitLog(e) {
+        e.preventDefault();
+        const date = document.getElementById('logDate').value;
+        const container = document.getElementById('dynamicFields');
+        const inputs = container.querySelectorAll('input, textarea');
+        const content_json = {};
+        inputs.forEach(input => {
+            content_json[input.name] = input.value;
+        });
+
+        const saveBtn = document.getElementById('saveLogBtn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `<span>Saving...</span>`;
+
+        try {
+            const res = await fetch('/api/logs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    date: date,
+                    workload_type: currentWorkload,
+                    content_json: content_json
+                })
+            });
+
+            if (res.ok) {
+                window.location.reload();
+            } else {
+                const err = await res.json();
+                alert(err.detail || 'Failed to save log');
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i><span>Save Record</span>`;
+                lucide.createIcons();
+            }
+        } catch (err) {
+            alert('Network error saving log');
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i><span>Save Record</span>`;
+            lucide.createIcons();
+        }
+    }
+
+    async function deleteLog() {
+        if (!confirm('Are you sure you want to delete this daily record?')) return;
+        try {
+            const res = await fetch(`/api/logs/${activeLogDate}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                window.location.reload();
+            } else {
+                alert('Failed to delete log');
+            }
+        } catch (err) {
+            alert('Error deleting log');
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}AI Health Intelligence & Timeline - HealthTuner{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header & AI Generator Panel -->
+    <div class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <div class="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400 font-semibold text-xs tracking-wider uppercase mb-1">
+                    <i data-lucide="brain-circuit" class="w-4 h-4"></i>
+                    <span>Backboard.io AI Engine</span>
+                </div>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">AI Health Intelligence & Recommendations</h1>
+                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    Select a date window to analyze your workload intensity, behavioral patterns, recovery trends, and future guidance.
+                </p>
+            </div>
+            
+            <button type="button" onclick="setFullMonth()" class="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 hover:bg-emerald-100 transition">
+                <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                <span>Full Current Month</span>
+            </button>
+        </div>
+
+        <!-- Date Range Filter Form -->
+        <form id="generateAiForm" onsubmit="generateSummary(event)" class="flex flex-col sm:flex-row items-end gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <div class="w-full sm:w-auto flex-1">
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">Start Date</label>
+                <input type="date" id="start_date" name="start_date" required value="{{ default_start }}"
+                    class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
+            </div>
+
+            <div class="w-full sm:w-auto flex-1">
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">End Date</label>
+                <input type="date" id="end_date" name="end_date" required value="{{ default_end }}"
+                    class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
+            </div>
+
+            <button type="submit" id="generateBtn"
+                class="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium rounded-xl shadow-md shadow-emerald-600/20 transition flex items-center justify-center space-x-2">
+                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                <span>Generate Intelligence</span>
+            </button>
+        </form>
+    </div>
+
+    <!-- Active / Newly Generated Summary Alert / Box -->
+    <div id="loadingBox" class="hidden bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm text-center">
+        <div class="inline-block animate-spin text-emerald-600 dark:text-emerald-400 mb-3">
+            <i data-lucide="loader-2" class="w-8 h-8"></i>
+        </div>
+        <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">Analyzing daily workload metrics & generating AI health assessment...</p>
+        <p class="text-xs text-slate-400 mt-1">Calling Backboard.io inference pipeline...</p>
+    </div>
+
+    <!-- Historical AI Summaries Timeline -->
+    <div class="space-y-6">
+        <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                <i data-lucide="history" class="w-5 h-5 text-emerald-500"></i>
+                <span>Summary History Timeline</span>
+            </h2>
+            <span class="text-xs text-slate-500">{{ summaries|length }} Saved Record(s)</span>
+        </div>
+
+        {% if not summaries %}
+        <div class="bg-white dark:bg-slate-900 p-12 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 text-center">
+            <div class="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center mb-3">
+                <i data-lucide="sparkles" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">No AI Summaries Generated Yet</h3>
+            <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
+                Log some activities in the calendar and click "Generate Intelligence" above to receive behavioral insights and recommendations.
+            </p>
+        </div>
+        {% else %}
+        <div class="relative pl-6 sm:pl-8 border-l-2 border-slate-200 dark:border-slate-800 space-y-8">
+            {% for summary in summaries %}
+            <div class="relative group">
+                <!-- Timeline Dot -->
+                <div class="absolute -left-[31px] sm:-left-[39px] top-1.5 w-4 h-4 rounded-full bg-emerald-500 border-4 border-slate-50 dark:border-slate-950 group-hover:scale-125 transition-transform"></div>
+
+                <div class="bg-white dark:bg-slate-900 p-6 sm:p-7 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <!-- Summary Card Header -->
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2.5 py-1 rounded-lg bg-emerald-100/70 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold text-xs">
+                                Analysis Range: {{ summary.start_date.strftime('%b %d, %Y') }} - {{ summary.end_date.strftime('%b %d, %Y') }}
+                            </span>
+                        </div>
+                        <div class="flex items-center space-x-3 text-xs text-slate-400">
+                            <span class="flex items-center space-x-1">
+                                <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                                <span>{{ summary.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                            </span>
+                            <button onclick="deleteSummary({{ summary.id }})" class="text-red-500 hover:text-red-700 transition p-1" title="Delete Summary">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Summary Content Formatted with Markdown Parser -->
+                    <div class="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 summary-content leading-relaxed">
+                        {{ summary.summary_text | replace('\n', '<br>') | safe }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function setFullMonth() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const firstDay = `${year}-${month}-01`;
+        const lastDayObj = new Date(year, now.getMonth() + 1, 0);
+        const lastDay = `${year}-${month}-${String(lastDayObj.getDate()).padStart(2, '0')}`;
+
+        document.getElementById('start_date').value = firstDay;
+        document.getElementById('end_date').value = lastDay;
+    }
+
+    async function generateSummary(e) {
+        e.preventDefault();
+        const start = document.getElementById('start_date').value;
+        const end = document.getElementById('end_date').value;
+        const btn = document.getElementById('generateBtn');
+        const loading = document.getElementById('loadingBox');
+
+        btn.disabled = true;
+        btn.classList.add('opacity-50');
+        loading.classList.remove('hidden');
+
+        try {
+            const res = await fetch('/api/summaries/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ start_date: start, end_date: end })
+            });
+
+            if (res.ok) {
+                window.location.href = '/timeline';
+            } else {
+                const err = await res.json();
+                alert(err.detail || 'Failed to generate summary');
+                loading.classList.add('hidden');
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+            }
+        } catch (err) {
+            alert('Network error while requesting AI health summary');
+            loading.classList.add('hidden');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50');
+        }
+    }
+
+    async function deleteSummary(id) {
+        if (!confirm('Are you sure you want to delete this summary record?')) return;
+        try {
+            const res = await fetch(`/api/summaries/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                window.location.reload();
+            } else {
+                alert('Failed to delete summary');
+            }
+        } catch (e) {
+            alert('Error deleting summary');
+        }
+    }
+
+    // Auto-trigger if redirected from dashboard button
+    window.addEventListener('DOMContentLoaded', () => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('auto_summary') === '1') {
+            setFullMonth();
+        }
+    });
+</script>
+{% endblock %}
