@@ -19,14 +19,25 @@ import models
 from auth import hash_password, verify_password
 from ai_service import generate_health_summary
 
-# Auto-create tables on launch
-Base.metadata.create_all(bind=engine)
+# Resolve base directory for serverless environments (e.g. Vercel)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Auto-create tables on launch (with error suppression for serverless cold-starts)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"Table creation skipped/failed on startup: {e}")
 
 app = FastAPI(title="HealthTuner", description="Intelligent Health Companion Web Application")
 
-# Mount Static Files & Jinja2 Templates
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+# Mount Static Files & Jinja2 Templates with absolute path resolution
+static_dir = os.path.join(BASE_DIR, "static")
+templates_dir = os.path.join(BASE_DIR, "templates")
+
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+templates = Jinja2Templates(directory=templates_dir)
 
 
 # --- Authentication Dependency ---
